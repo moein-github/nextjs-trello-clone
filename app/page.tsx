@@ -1,9 +1,11 @@
-import Image from "next/image";
+import Board from "@/components/Board";
+import Header from "@/components/Header";
 
 export default function Home() {
   return (
     <main>
-      <h1>Trello AI clone</h1>
+      <Header />
+      <Board />
     </main>
   );
 }
