@@ -6,13 +6,89 @@ import { DragDropContext, DropResult, Droppable } from "react-beautiful-dnd";
 import Column from "./Column";
 
 function Board() {
-  const { board, getBoard } = useBoardStore((state) => state);
+  const { board, getBoard, setBoardState, updateTodoInDB } = useBoardStore(
+    (state) => state
+  );
 
   useEffect(() => {
     getBoard();
   }, [getBoard]);
 
-  const handleOnDragEnd = (result: DropResult) => {};
+  const handleOnDragEnd = (result: DropResult) => {
+    const { destination, source, type } = result;
+
+    // Check dragged outside of board
+    if (!destination) return;
+
+    // Handle column drag
+    if (type === "column") {
+      const entries = Array.from(board.columns.entries());
+      const [removed] = entries.splice(source.index, 1);
+      entries.splice(destination.index, 0, removed);
+      const rearrangedColumns = new Map(entries);
+      setBoardState({ ...board, columns: rearrangedColumns });
+      return;
+    }
+
+    const columns = Array.from(board.columns);
+
+    const startColIndex = columns[Number(source.droppableId)];
+    const finishColIndex = columns[Number(destination.droppableId)];
+
+    const startCol: Column = {
+      id: startColIndex[0],
+      todos: startColIndex[1].todos,
+    };
+
+    const finishCol: Column = {
+      id: finishColIndex[0],
+      todos: finishColIndex[1].todos,
+    };
+
+    if (!startColIndex || !finishColIndex) return;
+
+    if (source.index === destination.index && startCol === finishCol) return;
+
+    const newTodos = startCol.todos;
+    const [todoMoved] = newTodos.splice(source.index, 1);
+
+    if (startCol.id === finishCol.id) {
+      //Same Column
+      newTodos.splice(destination.index, 0, todoMoved);
+
+      const newCol: Column = {
+        id: startCol.id,
+        todos: newTodos,
+      };
+
+      const newColumn = new Map(board.columns);
+      newColumn.set(startCol.id, newCol);
+
+      setBoardState({ ...board, columns: newColumn });
+    } else {
+      // Another column
+      const finishTodos = Array.from(finishCol.todos);
+      finishTodos.splice(destination.index, 0, todoMoved);
+
+      const newColumns = new Map(board.columns);
+
+      const newCol: Column = {
+        id: startCol.id,
+        todos: newTodos,
+      };
+
+      newColumns.set(startCol.id, newCol);
+      newColumns.set(finishCol.id, {
+        id: finishCol.id,
+        todos: finishTodos,
+      });
+
+      // Update DB
+      updateTodoInDB(todoMoved, finishCol.id);
+
+      setBoardState({ ...board, columns: newColumns });
+    }
+  };
 
   return (
     <DragDropContext onDragEnd={handleOnDragEnd}>
