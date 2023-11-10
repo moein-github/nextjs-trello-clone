@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'Trello 2.0 Clone',
   description:
     'A modern Trello clone for efficient project management and collaboration.',
+  icons: {
+    icon: '/trello-icon.png',
+  },
 };
 
 export default function RootLayout({
